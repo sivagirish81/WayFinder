@@ -132,6 +132,82 @@ h1 {
   margin: 0;
 }
 
+.panel-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 20px 0;
+}
+
+.panel,
+.preview {
+  background: #ffffff;
+  border: 1px solid #d9e0e4;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.compact {
+  min-height: 120px;
+}
+
+.badge {
+  background: #eaf0f2;
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.badge-low {
+  background: #dff5ec;
+  color: #12684f;
+}
+
+.badge-medium {
+  background: #fff2cf;
+  color: #75520a;
+}
+
+.badge-high {
+  background: #ffe1e1;
+  color: #8d1f1f;
+}
+
+.table {
+  background: #ffffff;
+  border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #d9e0e4;
+  padding: 12px;
+  text-align: left;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button,
+.link-button {
+  background: #287c72;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 10px 12px;
+}
+
 @media (max-width: 900px) {
   .app-shell,
   .hero,

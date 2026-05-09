@@ -1,5 +1,6 @@
 import { Activity, GitBranch, Route, ShieldCheck, Workflow } from 'lucide-react';
 import { Layout } from './components/Layout';
+import { TripDetail } from './pages/TripDetail';
 
 const cards = [
   {
@@ -53,6 +54,7 @@ export function App() {
           </article>
         ))}
       </section>
+      <TripDetail />
     </Layout>
   );
 }
