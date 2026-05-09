@@ -1,0 +1,12 @@
+from fastapi import APIRouter, status
+
+from wayfinder_api.schemas import TripCreateRequest, TripResponse
+from wayfinder_api.services.temporal_client import start_trip_workflow
+
+router = APIRouter(prefix="/api/demo", tags=["demo"])
+
+
+@router.post("/trips", response_model=TripResponse, status_code=status.HTTP_202_ACCEPTED)
+async def create_demo_trip(payload: TripCreateRequest) -> TripResponse:
+    payload.source = "manual_demo_input"
+    return await start_trip_workflow(payload)
