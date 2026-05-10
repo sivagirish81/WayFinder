@@ -108,13 +108,13 @@ async def post_response_url(response_url: str | None, text: str, response_type: 
 
 def build_preference_prompt() -> str:
     return (
-        "I'll coordinate this trip in this thread. Everyone can reply here with preferences.\n\n"
+        "I'll turn this Slack thread into a detailed Notion issue brief. Reply here with evidence, proposals, and concerns.\n\n"
         "Please share:\n"
-        "1. Must-do activities\n"
-        "2. Food preferences or dietary constraints\n"
-        "3. Preferred pace: relaxed, balanced, or packed\n"
-        "4. Budget concerns\n"
-        "5. Things to avoid"
+        "1. What is the concrete issue or symptom?\n"
+        "2. Suspected or confirmed root cause\n"
+        "3. Proposed fixes or mitigations\n"
+        "4. Risks, rollback concerns, or edge cases\n"
+        "5. Owners, decisions, and open questions"
     )
 
 
@@ -127,8 +127,8 @@ def record_thread_preference(thread_ts: str, slack_user_id: str, text: str) -> l
 
 def build_draft_ready_summary(preferences: list[dict[str, str]]) -> str:
     return (
-        f"Thanks — I have preferences from {len(preferences)} people. "
-        "I'm drafting a balanced itinerary now. Dashboard approval will be used before any final announcement."
+        f"Thanks — I have {len(preferences)} thread update(s). "
+        "I'm expanding the Notion issue brief with the discussion, proposed fixes, risks, and open questions."
     )
 
 
