@@ -1,18 +1,18 @@
-# Wayfinder
+# ThreadBrief
 
-AI group trip coordination through Slack, Notion, LangGraph, LangChain, Temporal, and open travel data.
+AI Slack-thread issue brief generation through Slack, Notion, LangGraph, LangChain, Temporal, and audit trails.
 
-Wayfinder is a Slack-native group trip planning coordinator. It is designed as a durable, multi-user, human-in-the-loop workflow demo where Temporal owns orchestration, LangGraph owns agent state transitions, and LangChain tools own integrations.
+ThreadBrief is a Slack-native issue documentation coordinator. It turns an active Slack thread about a bug, incident, decision, or engineering issue into a living Notion document covering the issue, root cause, proposed fixes, risks, rollback concerns, owners, decisions, and open questions.
 
-## What Wayfinder Is
+## What ThreadBrief Is
 
-Wayfinder is not a booking app, payment flow, travel marketplace, or one-shot itinerary generator. It is a Slack-native group trip coordination agent and durable workflow demo. A Slack thread starts the workflow, multiple people reply with preferences, Wayfinder normalizes and reconciles the group state, discovers candidate places from open travel data, drafts an itinerary, creates a Notion trip document, waits for human approval, revises when asked, and records audit/provenance throughout.
+ThreadBrief is not a generic chatbot or a passive transcript exporter. It is a durable workflow system for turning messy Slack discussion into structured engineering documentation. A Slack command or mention starts the workflow, people discuss the issue in-thread, ThreadBrief creates and updates a Notion issue brief, and the system keeps audit/provenance around the discussion and document.
 
 ## Architecture Focus
 
-- **Temporal** coordinates long-running trip planning workflows with activities, signals, queries, timers, retries, and idempotent integration calls.
-- **LangGraph** models the planning agent as a structured state machine with branching nodes for parsing, preference collection, conflict detection, place discovery, itinerary generation, revision, and finalization.
-- **LangChain** tools are the formal plugin layer for OpenAI, Slack, Notion, Overpass, itinerary generation, budget estimation, export, and provenance.
+- **Temporal** coordinates long-running issue-documentation workflows with activities, signals, queries, timers, retries, and idempotent integration calls.
+- **LangGraph** models the analysis agent as a structured state machine for issue extraction, root-cause analysis, fix/risk synthesis, revision, and finalization.
+- **LangChain** tools are the formal plugin layer for Slack, Notion, OpenAI, export, audit, and provenance.
 
 ```mermaid
 flowchart LR
@@ -23,7 +23,6 @@ flowchart LR
   Activities --> Graph["LangGraph planner"]
   Graph --> Tools["LangChain tool registry"]
   Tools --> OpenAI["OpenAI"]
-  Tools --> OSM["OpenStreetMap / Overpass"]
   Tools --> Notion["Notion"]
   Tools --> Slack
   API --> Postgres["PostgreSQL"]
@@ -36,28 +35,28 @@ flowchart LR
 Users can start a run through a mention or slash command:
 
 ```text
-@Wayfinder plan a 3-day trip to San Diego for 4 people in August. Budget around $800 each.
+@Wayfinder document this issue: deploy caused API 500s for workspace users after the cache migration.
 ```
 
-Wayfinder keeps collection in the original thread. Replies from Alex, Priya, Jordan, and Sam are stored separately, merged into group preferences, checked for conflicts, and preserved as provenance.
+ThreadBrief keeps discussion in the original thread. Replies are captured as evidence, appended to the Notion brief, and used to refine sections for root cause, fixes, risks, owners, decisions, and open questions.
 
 ## Temporal Is Central
 
-Temporal owns the durable lifecycle: workflow start, activity execution, signals for clarification/preferences/approval/changes/cancellation, queries for dashboard state, timers for reminders and auto-continue, retry/idempotency boundaries, and approval waits that survive worker restarts.
+Temporal owns the durable lifecycle: workflow start, activity execution, signals for thread updates/approval/changes/cancellation, queries for dashboard state, timers for reminders, retry/idempotency boundaries, and approval waits that survive worker restarts.
 
 To demonstrate durability, start a trip, wait until approval, stop the worker with `podman compose stop worker`, approve in the dashboard, then restart with `podman compose start worker`.
 
 ## LangGraph Agent State
 
-LangGraph models planning as structured state: trip basics, participant responses, per-user preferences, merged preferences, conflicts, tradeoffs, planning rules, candidate places, ranked places, itinerary, budget, Notion payload, Slack payload, approvals, revisions, errors, and messages.
+LangGraph models analysis as structured state: issue summary, symptoms, evidence, suspected root causes, proposed fixes, risks, rollback plans, owners, decisions, open questions, Notion payload, Slack payload, approvals, revisions, errors, and messages.
 
 ## LangChain Tools
 
 LangChain-style tools are the plugin layer. Every capability exposes typed Pydantic input/output schemas, risk metadata, approval behavior, idempotency policy, retry policy, integration name, and version.
 
-## Open Travel Data
+## Notion Issue Briefs
 
-Wayfinder uses OpenStreetMap through Overpass by default. Optional Wikidata and Wikivoyage providers are included as disabled-by-default extension points. Open data attribution is carried into the itinerary and Notion page.
+ThreadBrief creates a Notion page with sections for issue, current understanding, root cause, proposed fixes, risks, open questions, decision log, Slack discussion evidence, and metadata. New Slack thread replies are appended to the brief as evidence.
 
 ## Quick Start
 
@@ -75,7 +74,7 @@ Open:
 
 ## Manual Demo Input Mode
 
-When Slack credentials are unavailable, Wayfinder supports manual demo input mode from the dashboard. This path is for local development and demonstrations; the primary product path remains real Slack, real Notion, real OpenAI, and OpenStreetMap/Overpass.
+When Slack credentials are unavailable, ThreadBrief supports manual demo input mode from the dashboard. This path is for local development and demonstrations; the primary product path remains real Slack, real Notion, and real OpenAI.
 
 ## Setup
 
@@ -94,4 +93,4 @@ The free CI path runs Python unit tests and frontend Vitest tests. Tests use det
 
 ## Safety
 
-Wayfinder does not book travel, take payments, guarantee live prices, or guarantee current business hours. Budget estimates are approximate and users should verify reservations, transportation, and costs manually.
+ThreadBrief does not replace incident review, security review, or human approval. Generated analysis should be reviewed by the team before being treated as final.

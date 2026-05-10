@@ -35,7 +35,7 @@ def test_slash_command_endpoint_starts_trip() -> None:
         headers={"content-type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 200
-    assert "Wayfinder started trip run" in response.json()["text"]
+    assert "ThreadBrief started issue brief" in response.json()["text"]
 
 
 def test_slash_command_short_alias_starts_trip() -> None:
@@ -45,7 +45,7 @@ def test_slash_command_short_alias_starts_trip() -> None:
         headers={"content-type": "application/x-www-form-urlencoded"},
     )
     assert response.status_code == 200
-    assert "Wayfinder started trip run" in response.json()["text"]
+    assert "ThreadBrief started issue brief" in response.json()["text"]
 
 
 def test_thread_preference_count_is_deduplicated() -> None:
@@ -64,4 +64,4 @@ def test_draft_ready_summary_mentions_count() -> None:
             {"slack_user_id": "U4", "text": "Dinner"},
         ]
     )
-    assert "4 people" in summary
+    assert "4 thread update" in summary

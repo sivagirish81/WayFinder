@@ -1,6 +1,6 @@
 # Slack Setup
 
-Wayfinder can be tested directly from Slack through Slack HTTP events and slash commands. Slack must reach a public HTTPS URL, so local testing needs a tunnel.
+ThreadBrief can be tested directly from Slack through Slack HTTP events and slash commands. Slack must reach a public HTTPS URL, so local testing needs a tunnel.
 
 ## Local Tunnel
 
@@ -78,13 +78,13 @@ docker compose up -d --build api worker
 Slash command:
 
 ```text
-/wayfinder plan a 3-day trip to San Diego for 4 people in August. Budget around $800 each.
+/wayfinder document this issue: deploy caused API 500s after the cache migration. We need root cause, fix options, risks, and owners.
 ```
 
 Mention:
 
 ```text
-@Wayfinder plan a 3-day trip to San Diego for 4 people in August. Budget around $800 each.
+@Wayfinder document this issue: deploy caused API 500s after the cache migration.
 ```
 
-Wayfinder posts the preference prompt. Reply in that thread as different users. The API records replies, signals the Temporal workflow when available, and posts a "drafting" update once four preferences are collected.
+ThreadBrief posts an issue-documentation prompt and creates a Notion issue brief. Reply in that thread with root-cause evidence, proposed fixes, risks, owners, and open questions. The API records replies, appends them to the Notion brief when configured, signals the Temporal workflow when available, and acknowledges every captured thread update.
