@@ -1,4 +1,7 @@
-from wayfinder_api.services.slack_service import parse_wayfinder_command
+from fastapi.testclient import TestClient
+
+from wayfinder_api.main import app
+from wayfinder_api.services.slack_service import parse_slash_command, parse_wayfinder_command
 
 
 def test_parse_wayfinder_mention() -> None:
@@ -9,3 +12,22 @@ def test_parse_wayfinder_mention() -> None:
 
 def test_parse_wayfinder_slash_command() -> None:
     assert parse_wayfinder_command("/wayfinder plan a beach trip") == "plan a beach trip"
+
+
+def test_parse_slash_command_form_body() -> None:
+    payload = parse_slash_command(
+        b"command=%2Fwayfinder&text=plan%20a%20San%20Diego%20trip&user_id=U1&channel_id=C1"
+    )
+    assert payload.command == "/wayfinder"
+    assert payload.text == "plan a San Diego trip"
+    assert payload.channel_id == "C1"
+
+
+def test_slash_command_endpoint_starts_trip() -> None:
+    response = TestClient(app).post(
+        "/api/slack/commands",
+        content=b"command=%2Fwayfinder&text=plan%20a%203-day%20trip%20to%20San%20Diego&user_id=U1&channel_id=C1",
+        headers={"content-type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    assert "Wayfinder started trip run" in response.json()["text"]

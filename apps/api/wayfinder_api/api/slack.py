@@ -2,8 +2,23 @@ from fastapi import APIRouter, Header, HTTPException, Request
 
 from wayfinder_api.config import get_settings
 from wayfinder_api.schemas import TripCreateRequest
-from wayfinder_api.services.slack_service import parse_wayfinder_command, validate_slack_signature
-from wayfinder_api.services.temporal_client import start_trip_workflow
+from wayfinder_api.services.audit_service import write_audit_event
+from wayfinder_api.services.slack_service import (
+    build_preference_prompt,
+    build_draft_ready_summary,
+    parse_interaction_payload,
+    parse_slash_command,
+    parse_wayfinder_command,
+    post_response_url,
+    post_slack_message,
+    record_thread_preference,
+    validate_slack_signature,
+)
+from wayfinder_api.services.temporal_client import (
+    signal_participant_preference,
+    start_trip_workflow,
+    trip_id_for_thread,
+)
 
 router = APIRouter(prefix="/api/slack", tags=["slack"])
 
@@ -27,23 +42,120 @@ async def slack_events(
     if payload.get("type") == "url_verification":
         return {"challenge": payload.get("challenge")}
     event = payload.get("event", {})
+    event_type = event.get("type")
+    if event_type == "message" and not event.get("bot_id"):
+        thread_ts = event.get("thread_ts")
+        trip_id = trip_id_for_thread(thread_ts)
+        if trip_id and event.get("text"):
+            preferences = record_thread_preference(thread_ts, event.get("user", "unknown"), event["text"])
+            await signal_participant_preference(trip_id, event.get("user", "unknown"), event["text"])
+            await write_audit_event(
+                "PARTICIPANT_PREFERENCE_RECEIVED",
+                actor_type="slack_user",
+                details={"slack_user_id": event.get("user"), "text": event.get("text")},
+                trip_run_id=trip_id,
+            )
+            if len(preferences) >= 4:
+                await post_slack_message(
+                    settings.slack_bot_token,
+                    event.get("channel"),
+                    build_draft_ready_summary(preferences),
+                    thread_ts=thread_ts,
+                )
+        return {"ok": True}
+
     command = parse_wayfinder_command(event.get("text", ""))
-    if command:
+    if event_type == "app_mention" and command:
+        thread_ts = event.get("thread_ts") or event.get("ts")
         trip = await start_trip_workflow(
             TripCreateRequest(
                 original_request=command,
                 source="slack_mention",
-            )
+            ),
+            slack_channel_id=event.get("channel"),
+            slack_thread_ts=thread_ts,
+        )
+        await write_audit_event(
+            "TRIP_REQUEST_RECEIVED",
+            actor_type="slack_user",
+            details={"source": "app_mention", "text": command},
+            trip_run_id=str(trip.id),
+        )
+        await post_slack_message(
+            settings.slack_bot_token,
+            event.get("channel"),
+            build_preference_prompt(),
+            thread_ts=thread_ts,
         )
         return {"ok": True, "trip_id": str(trip.id)}
     return {"ok": True}
 
 
 @router.post("/interactions")
-async def slack_interactions() -> dict:
-    return {"ok": True}
+async def slack_interactions(
+    request: Request,
+    x_slack_request_timestamp: str | None = Header(default=None),
+    x_slack_signature: str | None = Header(default=None),
+) -> dict:
+    body = await request.body()
+    settings = get_settings()
+    if settings.slack_signing_secret and not validate_slack_signature(
+        settings.slack_signing_secret,
+        x_slack_request_timestamp or "",
+        body,
+        x_slack_signature or "",
+    ):
+        raise HTTPException(status_code=401, detail="Invalid Slack signature")
+    payload = parse_interaction_payload(body)
+    action_id = payload.get("actions", [{}])[0].get("action_id")
+    return {"ok": True, "action_id": action_id}
 
 
 @router.post("/commands")
-async def slack_commands() -> dict:
-    return {"ok": True}
+async def slack_commands(
+    request: Request,
+    x_slack_request_timestamp: str | None = Header(default=None),
+    x_slack_signature: str | None = Header(default=None),
+) -> dict:
+    body = await request.body()
+    settings = get_settings()
+    if settings.slack_signing_secret and not validate_slack_signature(
+        settings.slack_signing_secret,
+        x_slack_request_timestamp or "",
+        body,
+        x_slack_signature or "",
+    ):
+        raise HTTPException(status_code=401, detail="Invalid Slack signature")
+    command = parse_slash_command(body)
+    if not command.text:
+        return {
+            "response_type": "ephemeral",
+            "text": "Try `/wayfinder plan a 3-day trip to San Diego for 4 people in August`.",
+        }
+
+    trip = await start_trip_workflow(
+        TripCreateRequest(original_request=command.text, source="slack_slash_command"),
+        slack_channel_id=command.channel_id,
+    )
+    await write_audit_event(
+        "TRIP_REQUEST_RECEIVED",
+        actor_type="slack_user",
+        details={"source": "slash_command", "text": command.text},
+        trip_run_id=str(trip.id),
+    )
+    intro = build_preference_prompt()
+    slack_response = await post_slack_message(
+        settings.slack_bot_token,
+        command.channel_id,
+        intro,
+    )
+    thread_ts = slack_response.get("ts")
+    if thread_ts:
+        from wayfinder_api.services.temporal_client import TRIP_THREAD_INDEX
+
+        TRIP_THREAD_INDEX[thread_ts] = str(trip.id)
+    await post_response_url(command.response_url, f"Wayfinder started trip run `{trip.id}`.")
+    return {
+        "response_type": "ephemeral",
+        "text": f"Wayfinder started trip run `{trip.id}`. I posted the preference prompt in this channel.",
+    }
