@@ -1,11 +1,14 @@
 import hashlib
 import hmac
 import json
+import logging
 import time
 from dataclasses import dataclass
 from urllib.parse import parse_qs
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 def validate_slack_signature(signing_secret: str, timestamp: str, body: bytes, signature: str) -> bool:
@@ -86,15 +89,21 @@ async def post_slack_message(
         response.raise_for_status()
         data = response.json()
         if not data.get("ok"):
+            logger.warning("Slack chat.postMessage failed: %s", data)
             return data
+        logger.info(
+            "Slack chat.postMessage succeeded channel=%s ts=%s",
+            data.get("channel"),
+            data.get("ts"),
+        )
         return data
 
 
-async def post_response_url(response_url: str | None, text: str) -> None:
+async def post_response_url(response_url: str | None, text: str, response_type: str = "ephemeral") -> None:
     if not response_url:
         return
     async with httpx.AsyncClient(timeout=10) as client:
-        await client.post(response_url, json={"response_type": "ephemeral", "text": text})
+        await client.post(response_url, json={"response_type": response_type, "text": text})
 
 
 def build_preference_prompt() -> str:

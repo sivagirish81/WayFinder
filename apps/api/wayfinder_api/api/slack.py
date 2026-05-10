@@ -3,13 +3,13 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from wayfinder_api.config import get_settings
 from wayfinder_api.schemas import TripCreateRequest
 from wayfinder_api.services.audit_service import write_audit_event
+from wayfinder_api.services.notion_service import create_notion_trip_page
 from wayfinder_api.services.slack_service import (
     build_preference_prompt,
     build_draft_ready_summary,
     parse_interaction_payload,
     parse_slash_command,
     parse_wayfinder_command,
-    post_response_url,
     post_slack_message,
     record_thread_preference,
     validate_slack_signature,
@@ -157,8 +157,33 @@ async def slack_commands(
         from wayfinder_api.services.temporal_client import TRIP_THREAD_INDEX
 
         TRIP_THREAD_INDEX[thread_ts] = str(trip.id)
-    await post_response_url(command.response_url, f"Wayfinder started trip run `{trip.id}`.")
+    notion_response = await create_notion_trip_page(
+        api_key=settings.notion_api_key,
+        parent_page_id=settings.notion_parent_page_id,
+        trip_database_id=settings.notion_trip_database_id,
+        title="Wayfinder Slack Trip Plan",
+        trip_run_id=str(trip.id),
+        original_request=command.text,
+    )
+    notion_line = (
+        f"Notion draft: {notion_response['url']}"
+        if notion_response.get("ok") and notion_response.get("url")
+        else f"Notion draft not created: {notion_response.get('error')}"
+    )
+    if slack_response.get("ok"):
+        return {
+            "response_type": "ephemeral",
+            "text": f"Wayfinder started trip run `{trip.id}` and posted the preference prompt. {notion_line}",
+        }
+
+    slack_error = slack_response.get("error", "unknown_error")
     return {
-        "response_type": "ephemeral",
-        "text": f"Wayfinder started trip run `{trip.id}`. I posted the preference prompt in this channel.",
+        "response_type": "in_channel",
+        "text": (
+            f"Wayfinder started trip run `{trip.id}`, but I could not post a separate channel message "
+            f"through `chat.postMessage` (`{slack_error}`).\n\n"
+            f"{intro}\n\n"
+            f"{notion_line}\n\n"
+            "If the Slack error is `not_in_channel`, invite the app to this channel with `/invite @WayFinder`."
+        ),
     }
