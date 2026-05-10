@@ -31,3 +31,13 @@ def test_slash_command_endpoint_starts_trip() -> None:
     )
     assert response.status_code == 200
     assert "Wayfinder started trip run" in response.json()["text"]
+
+
+def test_slash_command_short_alias_starts_trip() -> None:
+    response = TestClient(app).post(
+        "/slack/commands",
+        content=b"command=%2Fwayfinder&text=plan%20a%203-day%20trip%20to%20San%20Diego&user_id=U1&channel_id=C1",
+        headers={"content-type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    assert "Wayfinder started trip run" in response.json()["text"]

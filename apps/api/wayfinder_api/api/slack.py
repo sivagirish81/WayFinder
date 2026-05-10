@@ -20,10 +20,11 @@ from wayfinder_api.services.temporal_client import (
     trip_id_for_thread,
 )
 
-router = APIRouter(prefix="/api/slack", tags=["slack"])
+router = APIRouter(tags=["slack"])
 
 
-@router.post("/events")
+@router.post("/api/slack/events")
+@router.post("/slack/events")
 async def slack_events(
     request: Request,
     x_slack_request_timestamp: str | None = Header(default=None),
@@ -91,7 +92,8 @@ async def slack_events(
     return {"ok": True}
 
 
-@router.post("/interactions")
+@router.post("/api/slack/interactions")
+@router.post("/slack/interactions")
 async def slack_interactions(
     request: Request,
     x_slack_request_timestamp: str | None = Header(default=None),
@@ -111,7 +113,8 @@ async def slack_interactions(
     return {"ok": True, "action_id": action_id}
 
 
-@router.post("/commands")
+@router.post("/api/slack/commands")
+@router.post("/slack/commands")
 async def slack_commands(
     request: Request,
     x_slack_request_timestamp: str | None = Header(default=None),

@@ -16,12 +16,20 @@ In another terminal:
 ngrok http 8000
 ```
 
-Use the generated HTTPS domain for Slack URLs:
+Use the generated HTTPS domain for Slack URLs. Both `/api/slack/...` and `/slack/...` are accepted.
 
 ```text
 https://YOUR-NGROK-DOMAIN.ngrok-free.app/api/slack/events
 https://YOUR-NGROK-DOMAIN.ngrok-free.app/api/slack/commands
 https://YOUR-NGROK-DOMAIN.ngrok-free.app/api/slack/interactions
+```
+
+Short aliases:
+
+```text
+https://YOUR-NGROK-DOMAIN.ngrok-free.app/slack/events
+https://YOUR-NGROK-DOMAIN.ngrok-free.app/slack/commands
+https://YOUR-NGROK-DOMAIN.ngrok-free.app/slack/interactions
 ```
 
 Set `API_BASE_URL` in `.env` to the same ngrok base URL when you want callback links to point at the tunnel.
