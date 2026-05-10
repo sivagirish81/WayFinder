@@ -56,6 +56,12 @@ async def slack_events(
                 details={"slack_user_id": event.get("user"), "text": event.get("text")},
                 trip_run_id=trip_id,
             )
+            await post_slack_message(
+                settings.slack_bot_token,
+                event.get("channel"),
+                f"Got it — I recorded <@{event.get('user')}> preferences. I have {len(preferences)} response(s) so far.",
+                thread_ts=thread_ts,
+            )
             if len(preferences) >= 4:
                 await post_slack_message(
                     settings.slack_bot_token,

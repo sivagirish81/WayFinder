@@ -1,7 +1,12 @@
 from fastapi.testclient import TestClient
 
 from wayfinder_api.main import app
-from wayfinder_api.services.slack_service import parse_slash_command, parse_wayfinder_command
+from wayfinder_api.services.slack_service import (
+    build_draft_ready_summary,
+    parse_slash_command,
+    parse_wayfinder_command,
+    record_thread_preference,
+)
 
 
 def test_parse_wayfinder_mention() -> None:
@@ -41,3 +46,22 @@ def test_slash_command_short_alias_starts_trip() -> None:
     )
     assert response.status_code == 200
     assert "Wayfinder started trip run" in response.json()["text"]
+
+
+def test_thread_preference_count_is_deduplicated() -> None:
+    first = record_thread_preference("thread-1", "U1", "Sky diving")
+    second = record_thread_preference("thread-1", "U1", "Sky diving")
+    assert len(first) == 1
+    assert len(second) == 1
+
+
+def test_draft_ready_summary_mentions_count() -> None:
+    summary = build_draft_ready_summary(
+        [
+            {"slack_user_id": "U1", "text": "Beaches"},
+            {"slack_user_id": "U2", "text": "Museums"},
+            {"slack_user_id": "U3", "text": "Budget"},
+            {"slack_user_id": "U4", "text": "Dinner"},
+        ]
+    )
+    assert "4 people" in summary
