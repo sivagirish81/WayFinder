@@ -18,7 +18,12 @@ class Settings(BaseSettings):
     planner_mode: str = "openai"
     slack_bot_token: str = ""
     slack_signing_secret: str = ""
+    slack_app_token: str = ""
+    slack_default_channel: str = ""
+    slack_use_socket_mode: bool = True
     notion_api_key: str = ""
+    notion_parent_page_id: str = ""
+    notion_trip_database_id: str = ""
     overpass_api_url: str = "https://overpass-api.de/api/interpreter"
     demo_input_mode: str = "manual"
     demo_fast_timers: bool = True
